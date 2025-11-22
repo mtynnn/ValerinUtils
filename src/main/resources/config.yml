@@ -1,0 +1,45 @@
+modules:
+  menuitem:
+    enabled: true
+  vote40:
+    enabled: true
+    service-name: "40Servidores"
+    delay-seconds: 30
+
+menuitem:
+  slot: 8
+  material: PAPER
+  name: "&bMenú del Aventurero &7(Click Derecho)"
+  lore:
+    - "&7Accede al menú del aventurero"
+    - "&7para habilidades, gestión de protes,"
+    - "&7warps, config ¡y más!"
+    - ""
+    - "&e¡Click para abrir!"
+  command: "dm open menu %player%"
+  custom-model-data: 3
+
+  sound:
+    enabled: true
+    # Lista de nombres aquí:
+    # https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
+    name: "BLOCK_CHEST_OPEN"
+    volume: 1.0
+    pitch: 1.0
+
+
+
+messages:
+  prefix: "&8[&bValerin&fUtils&8]&r "
+
+  no-permission: "%prefix%&cNo tienes permiso para usar este comando."
+  only-players: "%prefix%&cSolo jugadores pueden usar este comando."
+
+  valerinutils-usage: "%prefix%&7Uso: &e/valerinutils reload"
+  valerinutils-reload-ok: "%prefix%&aConfiguración recargada y &fmenuitem &aactualizado."
+
+  menuitem-usage: "%prefix%&7Uso: &e/menuitem &f<on|off|toggle>"
+  menuitem-on: "%prefix%&aItem de menú &factivado&7. Ahora ocupará el slot configurado."
+  menuitem-off: "%prefix%&cItem de menú &fdesactivado&7. El slot queda libre."
+  menuitem-toggled-on: "%prefix%&aItem de menú &factivado&7."
+  menuitem-toggled-off: "%prefix%&cItem de menú &fdesactivado&7."

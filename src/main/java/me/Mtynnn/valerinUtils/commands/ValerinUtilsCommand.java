@@ -1,0 +1,69 @@
+package me.Mtynnn.valerinUtils.commands;
+
+import me.Mtynnn.valerinUtils.ValerinUtils;
+import me.Mtynnn.valerinUtils.core.Module;
+import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
+
+    private final ValerinUtils plugin;
+
+    public ValerinUtilsCommand(ValerinUtils plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+
+        if (!sender.hasPermission("valerinutils.admin")) {
+            sender.sendMessage(plugin.getMessage("no-permission"));
+            return true;
+        }
+
+        if (args.length == 0) {
+            sender.sendMessage(plugin.getMessage("valerinutils-usage"));
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("reload")) {
+            plugin.reloadConfig();
+
+            if (plugin.getMenuItemModule() != null) {
+                plugin.getMenuItemModule().refreshAllPlayers();
+            }
+
+            sender.sendMessage(plugin.getMessage("valerinutils-reload-ok"));
+            return true;
+        }
+
+        sender.sendMessage(plugin.getMessage("valerinutils-usage"));
+        return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+
+        if (!sender.hasPermission("valerinutils.admin")) {
+            return Collections.emptyList();
+        }
+
+        if (args.length == 1) {
+            List<String> completions = new ArrayList<>();
+            if ("reload".startsWith(args[0].toLowerCase())) {
+                completions.add("reload");
+            }
+            return completions;
+        }
+
+        return Collections.emptyList();
+    }
+}

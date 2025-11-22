@@ -1,0 +1,8 @@
+me\Mtynnn\valerinUtils\core\ModuleManager.class
+me\Mtynnn\valerinUtils\modules\menuitem\MenuItemModule.class
+me\Mtynnn\valerinUtils\modules\vote40\Vote40Module.class
+me\Mtynnn\valerinUtils\placeholders\ValerinUtilsExpansion.class
+me\Mtynnn\valerinUtils\ValerinUtils.class
+me\Mtynnn\valerinUtils\core\Module.class
+me\Mtynnn\valerinUtils\commands\ValerinUtilsCommand.class
+me\Mtynnn\valerinUtils\commands\MenuItemCommand.class
