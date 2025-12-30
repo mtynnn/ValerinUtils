@@ -34,6 +34,7 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
 
         if (args[0].equalsIgnoreCase("reload")) {
             plugin.reloadConfig();
+            plugin.updateConfig();
 
             if (plugin.getMenuItemModule() != null) {
                 plugin.getMenuItemModule().refreshAllPlayers();

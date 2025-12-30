@@ -24,12 +24,12 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Solo jugadores pueden usar este comando.");
+            sender.sendMessage(plugin.getMessage("only-players"));
             return true;
         }
 
         if (args.length == 0) {
-            sender.sendMessage("§aUso: /" + label + " <on|off|toggle>");
+            sender.sendMessage(plugin.getMessage("menuitem-usage"));
             return true;
         }
 
@@ -38,20 +38,20 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
         switch (sub) {
             case "on" -> {
                 module.setDisabled(player, false);
-                sender.sendMessage("§aItem de menú activado.");
+                sender.sendMessage(plugin.getMessage("menuitem-on"));
             }
             case "off" -> {
                 module.setDisabled(player, true);
-                sender.sendMessage("§cItem de menú desactivado.");
+                sender.sendMessage(plugin.getMessage("menuitem-off"));
             }
             case "toggle" -> {
                 boolean disabled = module.isDisabled(player);
                 module.setDisabled(player, !disabled);
                 sender.sendMessage(!disabled
-                        ? "§cItem de menú desactivado."
-                        : "§aItem de menú activado.");
+                        ? plugin.getMessage("menuitem-toggled-off")
+                        : plugin.getMessage("menuitem-toggled-on"));
             }
-            default -> sender.sendMessage("§cUso: /" + label + " <on|off|toggle>");
+            default -> sender.sendMessage(plugin.getMessage("menuitem-usage"));
         }
 
         return true;
@@ -64,7 +64,8 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
             String prefix = args[0].toLowerCase(Locale.ROOT);
             List<String> out = new ArrayList<>();
             for (String s : base) {
-                if (s.startsWith(prefix)) out.add(s);
+                if (s.startsWith(prefix))
+                    out.add(s);
             }
             return out;
         }

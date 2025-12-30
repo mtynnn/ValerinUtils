@@ -17,6 +17,8 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -48,6 +50,7 @@ public class MenuItemModule implements Module, Listener {
     private final File dataFile;
     private final FileConfiguration dataConfig;
     private final Set<UUID> disabledPlayers = new HashSet<>();
+    private final Set<String> disabledWorlds = new HashSet<>();
 
     public MenuItemModule(ValerinUtils plugin) {
         this.plugin = plugin;
@@ -68,6 +71,7 @@ public class MenuItemModule implements Module, Listener {
         }
         this.dataConfig = YamlConfiguration.loadConfiguration(dataFile);
         loadDisabledPlayers();
+        loadConfigSettings();
     }
 
     @Override
@@ -131,17 +135,34 @@ public class MenuItemModule implements Module, Listener {
 
     // ================== Helpers de config ==================
 
+    private void loadConfigSettings() {
+        disabledWorlds.clear();
+        ConfigurationSection section = getSection();
+        if (section == null)
+            return;
+
+        List<String> worlds = section.getStringList("disabled-worlds");
+        disabledWorlds.addAll(worlds);
+    }
+
+    private boolean isDisabledWorld(String worldName) {
+        return disabledWorlds.contains(worldName);
+    }
+
     private ConfigurationSection getSection() {
         return plugin.getConfig().getConfigurationSection("menuitem");
     }
 
     private int getConfiguredSlot() {
         ConfigurationSection section = getSection();
-        if (section == null) return 0;
+        if (section == null)
+            return 0;
 
         int slot = section.getInt("slot", 0);
-        if (slot < 0) slot = 0;
-        if (slot > 35) slot = 35;
+        if (slot < 0)
+            slot = 0;
+        if (slot > 35)
+            slot = 35;
         return slot;
     }
 
@@ -197,9 +218,11 @@ public class MenuItemModule implements Module, Listener {
     }
 
     private boolean isMenuItem(ItemStack stack) {
-        if (stack == null || stack.getType().isAir()) return false;
+        if (stack == null || stack.getType().isAir())
+            return false;
         ItemMeta meta = stack.getItemMeta();
-        if (meta == null) return false;
+        if (meta == null)
+            return false;
         PersistentDataContainer data = meta.getPersistentDataContainer();
         Byte flag = data.get(menuItemKey, PersistentDataType.BYTE);
         return flag != null && flag == (byte) 1;
@@ -229,6 +252,11 @@ public class MenuItemModule implements Module, Listener {
             return;
         }
 
+        if (isDisabledWorld(player.getWorld().getName())) {
+            clearMenuItem(player);
+            return;
+        }
+
         ConfigurationSection section = getSection();
         if (section == null) {
             return;
@@ -253,6 +281,7 @@ public class MenuItemModule implements Module, Listener {
     }
 
     public void refreshAllPlayers() {
+        loadConfigSettings();
         for (Player player : Bukkit.getOnlinePlayers()) {
             giveMenuItem(player);
         }
@@ -273,10 +302,12 @@ public class MenuItemModule implements Module, Listener {
 
     private void playMenuSound(Player player) {
         ConfigurationSection section = getSection();
-        if (section == null) return;
+        if (section == null)
+            return;
 
         ConfigurationSection soundSec = section.getConfigurationSection("sound");
-        if (soundSec == null) return;
+        if (soundSec == null)
+            return;
 
         if (!soundSec.getBoolean("enabled", false)) {
             return;
@@ -297,13 +328,17 @@ public class MenuItemModule implements Module, Listener {
         }
     }
 
-
     // ================== Eventos ==================
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         giveMenuItem(player);
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        giveMenuItem(event.getPlayer());
     }
 
     @EventHandler
@@ -315,8 +350,20 @@ public class MenuItemModule implements Module, Listener {
     // Click en inventario (incluye shift-click, números, etc.)
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (isDisabled(player)) return;
+        if (!(event.getWhoClicked() instanceof Player player))
+            return;
+        if (isDisabled(player))
+            return;
+
+        if (event.getClick() == ClickType.NUMBER_KEY) {
+            int button = event.getHotbarButton();
+            ItemStack itemInHotbar = player.getInventory().getItem(button);
+            if (isMenuItem(itemInHotbar)) {
+                event.setCancelled(true);
+                player.updateInventory();
+                return;
+            }
+        }
 
         ItemStack current = event.getCurrentItem();
         ItemStack cursor = event.getCursor();
@@ -331,8 +378,10 @@ public class MenuItemModule implements Module, Listener {
     // Drag en inventario
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
-        if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (isDisabled(player)) return;
+        if (!(event.getWhoClicked() instanceof Player player))
+            return;
+        if (isDisabled(player))
+            return;
 
         ItemStack oldCursor = event.getOldCursor();
         if (isMenuItem(oldCursor)) {
@@ -345,10 +394,12 @@ public class MenuItemModule implements Module, Listener {
     // Click derecho/izquierdo en el mundo (con o sin shift)
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onInteract(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) return;
+        if (event.getHand() != EquipmentSlot.HAND)
+            return;
 
         Player player = event.getPlayer();
-        if (isDisabled(player)) return;
+        if (isDisabled(player))
+            return;
 
         ItemStack item = player.getInventory().getItemInMainHand();
         if (!isMenuItem(item)) {
@@ -370,7 +421,8 @@ public class MenuItemModule implements Module, Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onDrop(PlayerDropItemEvent event) {
         Player player = event.getPlayer();
-        if (isDisabled(player)) return;
+        if (isDisabled(player))
+            return;
 
         if (isMenuItem(event.getItemDrop().getItemStack())) {
             event.setCancelled(true);
@@ -381,7 +433,8 @@ public class MenuItemModule implements Module, Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onSwap(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
-        if (isDisabled(player)) return;
+        if (isDisabled(player))
+            return;
 
         if (isMenuItem(event.getMainHandItem()) || isMenuItem(event.getOffHandItem())) {
             event.setCancelled(true);

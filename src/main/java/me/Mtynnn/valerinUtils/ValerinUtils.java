@@ -5,11 +5,17 @@ import me.Mtynnn.valerinUtils.core.ModuleManager;
 import me.Mtynnn.valerinUtils.modules.externalplaceholders.ExternalPlaceholdersModule;
 import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
 import me.Mtynnn.valerinUtils.modules.vote40.Vote40Module;
+import me.Mtynnn.valerinUtils.modules.joinquit.JoinQuitModule;
 import me.Mtynnn.valerinUtils.commands.ValerinUtilsCommand;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.bukkit.plugin.java.JavaPlugin;
 import me.Mtynnn.valerinUtils.placeholders.ValerinUtilsExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.configuration.file.FileConfiguration;
 
 public final class ValerinUtils extends JavaPlugin {
@@ -18,14 +24,14 @@ public final class ValerinUtils extends JavaPlugin {
     private ModuleManager moduleManager;
     private MenuItemModule menuItemModule;
     private ExternalPlaceholdersModule externalPlaceholdersModule;
+    private JoinQuitModule joinQuitModule;
 
     @Override
     public void onEnable() {
         instance = this;
 
         saveDefaultConfig();
-        getConfig().options().copyDefaults(true);
-        saveConfig();
+        updateConfig();
 
         moduleManager = new ModuleManager(this);
         menuItemModule = new MenuItemModule(this);
@@ -34,6 +40,10 @@ public final class ValerinUtils extends JavaPlugin {
         // Módulo de placeholders externos (RoyalEconomy, etc.)
         externalPlaceholdersModule = new ExternalPlaceholdersModule(this);
         moduleManager.registerModule(externalPlaceholdersModule);
+
+        // Módulo JoinQuit
+        joinQuitModule = new JoinQuitModule(this);
+        moduleManager.registerModule(joinQuitModule);
 
         if (Bukkit.getPluginManager().getPlugin("Votifier") != null
                 || Bukkit.getPluginManager().getPlugin("VotifierPlus") != null) {
@@ -90,6 +100,10 @@ public final class ValerinUtils extends JavaPlugin {
         return externalPlaceholdersModule;
     }
 
+    public JoinQuitModule getJoinQuitModule() {
+        return joinQuitModule;
+    }
+
     public String getMessage(String key) {
         FileConfiguration cfg = getConfig();
 
@@ -99,6 +113,87 @@ public final class ValerinUtils extends JavaPlugin {
         String raw = cfg.getString("messages." + key, "&cMensaje faltante: " + key);
         raw = raw.replace("%prefix%", prefix);
 
-        return ChatColor.translateAlternateColorCodes('&', raw);
+        return translateColors(raw);
+    }
+
+    public String translateColors(String message) {
+        if (message == null)
+            return "";
+        // Soporte para &#RRGGBB
+        Pattern pattern = Pattern.compile("&#[a-fA-F0-9]{6}");
+        Matcher matcher = pattern.matcher(message);
+        while (matcher.find()) {
+            String color = message.substring(matcher.start(), matcher.end());
+            // net.md_5.bungee.api.ChatColor es accesible en Paper/Spigot moderno
+            try {
+                message = message.replace(color, net.md_5.bungee.api.ChatColor.of(color.substring(1)).toString());
+            } catch (Exception e) {
+                // Falladback si no es compatible
+            }
+            matcher = pattern.matcher(message);
+        }
+        return ChatColor.translateAlternateColorCodes('&', message);
+    }
+
+    public Component parseComponent(String text) {
+        if (text == null)
+            return Component.empty();
+
+        // Estrategia Híbrida:
+        // 1. Convertir códigos de color legacy (&c, &#RRGGBB) a tags MiniMessage
+        String processed = legacyToMiniMessage(text);
+
+        // 2. Parsear con MiniMessage
+        return MiniMessage.miniMessage().deserialize(processed);
+    }
+
+    private String legacyToMiniMessage(String text) {
+        if (text == null)
+            return "";
+
+        // Reemplazar &#RRGGBB a <#RRGGBB>
+        // Patrón para &#......
+        text = text.replaceAll("&#([0-9a-fA-F]{6})", "<#$1>");
+
+        // Reemplazar &x a <color>
+        // Mapeo básico de colores legacy
+        text = text.replace("&0", "<black>");
+        text = text.replace("&1", "<dark_blue>");
+        text = text.replace("&2", "<dark_green>");
+        text = text.replace("&3", "<dark_aqua>");
+        text = text.replace("&4", "<dark_red>");
+        text = text.replace("&5", "<dark_purple>");
+        text = text.replace("&6", "<gold>");
+        text = text.replace("&7", "<gray>");
+        text = text.replace("&8", "<dark_gray>");
+        text = text.replace("&9", "<blue>");
+        text = text.replace("&a", "<green>");
+        text = text.replace("&b", "<aqua>");
+        text = text.replace("&c", "<red>");
+        text = text.replace("&d", "<light_purple>");
+        text = text.replace("&e", "<yellow>");
+        text = text.replace("&f", "<white>");
+
+        // Decoraciones
+        text = text.replace("&k", "<obfuscated>");
+        text = text.replace("&l", "<bold>");
+        text = text.replace("&m", "<strikethrough>");
+        text = text.replace("&n", "<underlined>");
+        text = text.replace("&o", "<italic>");
+        text = text.replace("&r", "<reset>");
+
+        return text;
+    }
+
+    public boolean isDebug() {
+        return getConfig().getBoolean("debug", false);
+    }
+
+    public void updateConfig() {
+        getConfig().options().copyDefaults(true);
+        saveConfig();
+        if (isDebug()) {
+            getLogger().info("Config updated merged with defaults.");
+        }
     }
 }

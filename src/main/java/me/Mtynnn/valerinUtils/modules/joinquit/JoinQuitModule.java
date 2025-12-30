@@ -1,0 +1,359 @@
+package me.Mtynnn.valerinUtils.modules.joinquit;
+
+import me.Mtynnn.valerinUtils.ValerinUtils;
+import me.Mtynnn.valerinUtils.core.Module;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import net.luckperms.api.LuckPerms;
+import net.luckperms.api.LuckPermsProvider;
+import net.luckperms.api.model.user.User;
+import net.luckperms.api.query.QueryOptions;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
+import java.io.File;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.Comparator;
+
+public class JoinQuitModule implements Module, Listener {
+
+    private final ValerinUtils plugin;
+    private final File dataFile;
+    private int uniquePlayerCount;
+    private final Random random = new Random();
+
+    public JoinQuitModule(ValerinUtils plugin) {
+        this.plugin = plugin;
+        this.dataFile = new File(plugin.getDataFolder(), "joinquit_data.yml");
+        loadData();
+    }
+
+    @Override
+    public String getId() {
+        return "joinquit";
+    }
+
+    @Override
+    public void enable() {
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    @Override
+    public void disable() {
+        // Nada que hacer al deshabilitar
+    }
+
+    private void loadData() {
+        if (!dataFile.exists()) {
+            uniquePlayerCount = Bukkit.getOfflinePlayers().length;
+            saveData();
+        } else {
+            FileConfiguration data = YamlConfiguration.loadConfiguration(dataFile);
+            uniquePlayerCount = data.getInt("unique-players", Bukkit.getOfflinePlayers().length);
+        }
+    }
+
+    private void saveData() {
+        FileConfiguration data = YamlConfiguration.loadConfiguration(dataFile);
+        data.set("unique-players", uniquePlayerCount);
+        try {
+            data.save(dataFile);
+        } catch (IOException e) {
+            plugin.getLogger().warning("No se pudo guardar joinquit_data.yml");
+        }
+    }
+
+    private boolean isWorldDisabled(String worldName) {
+        List<String> disabled = plugin.getConfig().getStringList("joinquit.disabled-worlds");
+        return disabled.contains(worldName);
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        if (isWorldDisabled(player.getWorld().getName()))
+            return;
+
+        event.setJoinMessage(null); // Deshabilitar mensaje por defecto
+
+        FileConfiguration config = plugin.getConfig();
+        String path = "joinquit";
+
+        // Incrementar contador si es nuevo (o confiar en hasPlayedBefore)
+        // Usamos hasPlayedBefore para la lógica de "Primera vez"
+        // Pero mantenemos nuestro contador para el número secuencial #ID
+        boolean firstJoin = !player.hasPlayedBefore();
+
+        if (firstJoin) {
+            uniquePlayerCount++;
+            saveData();
+            handleFirstJoin(player, config.getConfigurationSection(path + ".first-join"));
+        } else {
+            handleJoin(player, config.getConfigurationSection(path + ".join"));
+        }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        if (isWorldDisabled(player.getWorld().getName()))
+            return;
+
+        event.setQuitMessage(null);
+
+        handleQuit(player, plugin.getConfig().getConfigurationSection("joinquit.quit"));
+    }
+
+    private void handleFirstJoin(Player player, ConfigurationSection section) {
+        if (section == null || !section.getBoolean("enabled", false))
+            return;
+
+        // Broadcast Message
+        List<String> messages = section.getStringList("broadcast-message");
+        for (String line : messages) {
+            broadcast(processPlaceholders(player, line));
+        }
+
+        // Title
+        if (section.getBoolean("title.enabled", false)) {
+            Component title = processPlaceholders(player, section.getString("title.title", ""));
+            Component subtitle = processPlaceholders(player, section.getString("title.subtitle", ""));
+
+            Title.Times times = Title.Times.times(
+                    Duration.ofMillis(section.getInt("title.fade-in", 10) * 50L),
+                    Duration.ofMillis(section.getInt("title.stay", 60) * 50L),
+                    Duration.ofMillis(section.getInt("title.fade-out", 10) * 50L));
+
+            player.showTitle(Title.title(title, subtitle, times));
+        }
+
+        // Sound
+        playSound(player, section.getConfigurationSection("sound"));
+    }
+
+    private void handleJoin(Player player, ConfigurationSection section) {
+        if (section == null)
+            return;
+
+        // 1. Group Logic High Priority
+        ConfigurationSection groups = section.getConfigurationSection("groups");
+        if (groups != null) {
+            Set<String> keys = groups.getKeys(false);
+            // Ordenar por prioridad (mayor a menor)
+            List<String> sortedGroups = keys.stream()
+                    .sorted(Comparator.comparingInt(k -> -groups.getInt(k + ".priority", 0)))
+                    .collect(Collectors.toList());
+
+            for (String groupKey : sortedGroups) {
+                // Verificar permiso:
+                // 1. "permission" custom en config
+                // 2. Default: group.<nombre> (común en LuckPerms)
+                String permNode = groups.getString(groupKey + ".permission");
+                if (permNode == null || permNode.isEmpty()) {
+                    permNode = "group." + groupKey;
+                }
+
+                boolean has = hasGroup(player, groupKey) || player.hasPermission(permNode);
+
+                if (plugin.isDebug()) {
+                    plugin.getLogger().info("[Debug] Checking group: " + groupKey + " | Perm: " + permNode + " | Has: "
+                            + has + " | Priority: " + groups.getInt(groupKey + ".priority"));
+                }
+
+                if (has) {
+                    ConfigurationSection groupSection = groups.getConfigurationSection(groupKey);
+
+                    // Broadcast
+                    List<String> msgs = groupSection.getStringList("messages");
+                    if (!msgs.isEmpty()) {
+                        String msg = msgs.get(random.nextInt(msgs.size()));
+                        broadcast(processPlaceholders(player, msg));
+                    }
+
+                    // Sound
+                    playSound(player, groupSection.getConfigurationSection("sound"));
+
+                    // Title (si existe en grupo)
+                    if (groupSection.getBoolean("title.enabled", false)) {
+                        // ... lógica de título duplicada o extraída?
+                        // Por simplicidad, si el grupo tiene title, lo usaremos.
+                        // Si no, NO muestra título (grupo anula default).
+                        showTitle(player, groupSection.getConfigurationSection("title"));
+                    }
+
+                    // MOTD (si existe)
+                    if (groupSection.getBoolean("motd.enabled", false)) {
+                        showMotd(player, groupSection.getConfigurationSection("motd"));
+                    } else if (section.getBoolean("motd.enabled")) {
+                        // Fallback MOTD global si el grupo no tiene uno específico?
+                        // Generalmente si tienes grupo, quieres override.
+                        // Pero el MOTD suele ser global. Lo dejaremos global si el grupo no define uno.
+                        showMotd(player, section.getConfigurationSection("motd"));
+                    }
+
+                    return; // Detener aquí, grupo encontrado.
+                }
+            }
+        }
+
+        // 2. Default Logic
+        // Broadcast Message (Random)
+        List<String> messages = section.getStringList("messages");
+        if (!messages.isEmpty()) {
+            String msg = messages.get(random.nextInt(messages.size()));
+            broadcast(processPlaceholders(player, msg));
+        }
+
+        // Title
+        showTitle(player, section.getConfigurationSection("title"));
+
+        // Sound
+        playSound(player, section.getConfigurationSection("sound"));
+
+        // MOTD
+        showMotd(player, section.getConfigurationSection("motd"));
+    }
+
+    private void showTitle(Player player, ConfigurationSection section) {
+        if (section == null || !section.getBoolean("enabled", false))
+            return;
+
+        Component title = processPlaceholders(player, section.getString("title", ""));
+        Component subtitle = processPlaceholders(player, section.getString("subtitle", ""));
+
+        Title.Times times = Title.Times.times(
+                Duration.ofMillis(section.getInt("fade-in", 10) * 50L),
+                Duration.ofMillis(section.getInt("stay", 40) * 50L),
+                Duration.ofMillis(section.getInt("fade-out", 10) * 50L));
+
+        player.showTitle(Title.title(title, subtitle, times));
+    }
+
+    private void showMotd(Player player, ConfigurationSection section) {
+        if (section == null || !section.getBoolean("enabled", false))
+            return;
+        for (String line : section.getStringList("lines")) {
+            player.sendMessage(processPlaceholders(player, line));
+        }
+    }
+
+    private void handleQuit(Player player, ConfigurationSection section) {
+        if (section == null || !section.getBoolean("enabled", false))
+            return;
+
+        // Broadcast Message (Random)
+        List<String> messages = section.getStringList("messages");
+        if (!messages.isEmpty()) {
+            String msg = messages.get(random.nextInt(messages.size()));
+            broadcast(processPlaceholders(player, msg));
+        }
+
+        // Sound (Global or to players?) - Usually Quit sounds are global or nearby?
+        // Let's play it globally to all players for now, or just don't play it if not
+        // requested specifically.
+        // Actually, JoinQuitPlus usually plays sound to the player (on join) but on
+        // quit... who hears it?
+        // Usually quit sounds are not standard unless it's a sound played TO other
+        // players.
+        // We will skip sound on quit for other players to avoid spam, or play it at the
+        // location.
+        if (section.getBoolean("sound.enabled")) {
+            String soundName = section.getString("sound.name", "BLOCK_WOODEN_DOOR_CLOSE");
+            float vol = (float) section.getDouble("sound.volume", 1.0);
+            float pitch = (float) section.getDouble("sound.pitch", 1.0);
+            try {
+                Sound sound = Sound.valueOf(soundName);
+                // Play to world at location
+                player.getWorld().playSound(player.getLocation(), sound, vol, pitch);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private void playSound(Player player, ConfigurationSection section) {
+        if (section == null || !section.getBoolean("enabled"))
+            return;
+        String soundName = section.getString("name");
+        float vol = (float) section.getDouble("volume", 1.0);
+        float pitch = (float) section.getDouble("pitch", 1.0);
+        try {
+            Sound sound = Sound.valueOf(soundName);
+            // Play to ALL online players
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.playSound(p.getLocation(), sound, vol, pitch);
+            }
+        } catch (Exception ignored) {
+            plugin.getLogger().warning("Sonido invalido: " + soundName);
+        }
+    }
+
+    private Component processPlaceholders(Player player, String message) {
+
+        // Calcular jugadores online excluyendo vanish
+        long onlineCount = 0;
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.hasMetadata("vanished")) {
+                onlineCount++;
+            }
+        }
+
+        String processed = message
+                .replace("%player%", player.getName())
+                .replace("%player_name%", player.getName()) // Alias para %player%
+                .replace("%player_number%", String.valueOf(uniquePlayerCount))
+                .replace("%online%", String.valueOf(onlineCount))
+                .replace("%max%", String.valueOf(Bukkit.getMaxPlayers()));
+
+        // PAPI support if available
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            processed = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, processed);
+        }
+
+        return plugin.parseComponent(processed);
+    }
+
+    private void broadcast(Component message) {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.sendMessage(message);
+        }
+        Bukkit.getConsoleSender().sendMessage(message);
+    }
+
+    public int getUniquePlayerCount() {
+        return uniquePlayerCount;
+    }
+
+    private boolean hasGroup(Player player, String groupName) {
+        if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) {
+            return false;
+        }
+        try {
+            LuckPerms api = LuckPermsProvider.get();
+            User user = api.getUserManager().getUser(player.getUniqueId());
+            if (user == null)
+                return false;
+
+            return user.getInheritedGroups(QueryOptions.defaultContextualOptions()).stream()
+                    .anyMatch(g -> g.getName().equalsIgnoreCase(groupName));
+        } catch (Exception e) {
+            if (plugin.isDebug()) {
+                plugin.getLogger().warning("Error checking LuckPerms group: " + e.getMessage());
+            }
+            return false;
+        }
+    }
+}

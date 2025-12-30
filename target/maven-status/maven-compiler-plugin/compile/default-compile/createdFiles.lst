@@ -15,3 +15,4 @@ me\Mtynnn\valerinUtils\modules\externalplaceholders\providers\GrimACProvider$1.c
 me\Mtynnn\valerinUtils\modules\externalplaceholders\providers\PlaceholderProvider.class
 me\Mtynnn\valerinUtils\modules\externalplaceholders\ExternalPlaceholdersModule.class
 me\Mtynnn\valerinUtils\modules\vote40\Vote40Module.class
+me\Mtynnn\valerinUtils\modules\joinquit\JoinQuitModule.class

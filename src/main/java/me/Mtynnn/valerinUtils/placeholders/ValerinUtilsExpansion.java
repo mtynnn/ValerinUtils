@@ -4,7 +4,9 @@ import me.Mtynnn.valerinUtils.ValerinUtils;
 import me.Mtynnn.valerinUtils.modules.externalplaceholders.ExternalPlaceholdersModule;
 import me.Mtynnn.valerinUtils.modules.externalplaceholders.providers.PlaceholderProvider;
 import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
+import me.Mtynnn.valerinUtils.modules.joinquit.JoinQuitModule;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -62,17 +64,33 @@ public class ValerinUtilsExpansion extends PlaceholderExpansion {
             return String.valueOf(enabled);
         }
 
+        // %valerinutils_player_number%
+        // %valerinutils_total_players%
+        if (params.equals("player_number") || params.equals("total_players")) {
+            JoinQuitModule jq = plugin.getJoinQuitModule();
+            if (jq != null) {
+                return String.valueOf(jq.getUniquePlayerCount());
+            }
+            return String.valueOf(Bukkit.getOfflinePlayers().length);
+        }
+
+        // %valerinutils_first_join_date%
+        if (params.equals("first_join_date")) {
+            return new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm")
+                    .format(new java.util.Date(player.getFirstPlayed()));
+        }
+
         // ========== Placeholders externos ==========
         // Formato: %valerinutils_<plugin>_<parametro>%
         // Ejemplo: %valerinutils_royaleconomy_pay_enabled%
-        
+
         ExternalPlaceholdersModule extModule = plugin.getExternalPlaceholdersModule();
         if (extModule != null) {
             // Buscar si el params empieza con algún provider conocido
             for (var entry : extModule.getProviders().entrySet()) {
                 String providerId = entry.getKey();
                 PlaceholderProvider provider = entry.getValue();
-                
+
                 String prefix = providerId + "_";
                 if (params.toLowerCase().startsWith(prefix)) {
                     // Extraer la parte después del prefijo del provider
