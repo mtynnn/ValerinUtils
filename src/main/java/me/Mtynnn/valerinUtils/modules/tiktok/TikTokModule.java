@@ -3,6 +3,7 @@ package me.Mtynnn.valerinUtils.modules.tiktok;
 import me.Mtynnn.valerinUtils.ValerinUtils;
 import me.Mtynnn.valerinUtils.core.Module;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
@@ -12,6 +13,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -87,10 +89,36 @@ public class TikTokModule extends Command implements Module {
             return true;
         }
 
+        // Chequear espacio en inventario
+        int requiredSlots = plugin.getConfig().getInt("tiktok.required-slots", 1);
+        int freeSlots = getFreeSlots(player);
+
+        if (freeSlots < requiredSlots) {
+            String msg = plugin.getMessage("reward-inventory-full");
+            msg = msg.replace("%slots%", String.valueOf(requiredSlots));
+            player.sendMessage(msg);
+            return true;
+        }
+
         executionReward(player);
-        player.sendMessage(plugin.getMessage("reward-success"));
+
+        // Send success message (support list)
+        List<String> messages = plugin.getMessageList("reward-success");
+        for (String msg : messages) {
+            player.sendMessage(msg);
+        }
 
         return true;
+    }
+
+    private int getFreeSlots(Player player) {
+        int free = 0;
+        for (ItemStack item : player.getInventory().getStorageContents()) {
+            if (item == null || item.getType() == Material.AIR) {
+                free++;
+            }
+        }
+        return free;
     }
 
     private void loadData() {

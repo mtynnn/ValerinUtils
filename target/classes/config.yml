@@ -44,7 +44,7 @@ menuitem:
     pitch: 1.0
 
 messages:
-  prefix: '&8[&#46C3D2ᴠ&fUᴛɪʟs&8]&r '
+  prefix: '&8[&#FFEE8Cᴠᴀʟᴇʀɪɴ&8]&r '
   no-permission: '%prefix%&cNo tienes permiso para usar este comando.'
   only-players: '%prefix%&cSolo jugadores pueden usar este comando.'
   
@@ -59,7 +59,16 @@ messages:
   
   reward-usage: "%prefix%&7Uso: &e/%command%"
   reward-already-claimed: "%prefix%&c¡Ya has reclamado esta recompensa!"
-  reward-success: "%prefix%&a¡Has reclamado tu recompensa!"
+  reward-usage: "%prefix%&7Uso: &e/%command%"
+  reward-success: 
+    - "&7"
+    - "&fHas recibido:"
+    - " &8- &6$10000 Monedas"
+    - " &8- &dFly de Protección &7(3 Días)"
+    - " &8- &7x1 &cBloques de Protección &7(50x50)"
+    - " &8- &7x1 &#9F2B68&lP&#A52C68&lI&#AC2C67&lC&#B22D67&lO &#BF2E66&lT&#C52F65&lI&#CB2F65&lK&#D13064&lT&#D83064&lO&#DE3163&lK"
+    - "&7"
+  reward-inventory-full: "%prefix%&c¡Necesitas al menos &e%slots% &cespacios vacíos en tu inventario!"
   
   menuitem-slot-occupied: '%prefix%&cNo puedes activar el item. El slot está ocupado,
     vacíalo primero.'
@@ -67,10 +76,14 @@ messages:
   ecoskillsrecount-done: '%prefix%&aTus habilidades han sido recalculadas correctamente.'
 
 tiktok:
+  enabled: true
   command-name: "tiktok"
+  required-slots: 2
   commands:
-    - "eco give %player% 1000"
-    - "xp give %player% 500"
+    - "eco give %player% 10000"
+    - "ecoitems give %player% pico_tiktok"
+    - "pb blocks give 30 %player%"
+    - "lp user %player% permission settemp protectionblocks.fly true 3d server=survival"
   sound:
     enabled: true
     name: "ENTITY_PLAYER_LEVELUP"

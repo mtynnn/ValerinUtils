@@ -19,6 +19,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.configuration.file.FileConfiguration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Collections;
 
 public final class ValerinUtils extends JavaPlugin {
 
@@ -133,10 +136,49 @@ public final class ValerinUtils extends JavaPlugin {
         String prefixRaw = cfg.getString("messages.prefix", "&8[&bValerin&fUtils&8]&r ");
         String prefix = ChatColor.translateAlternateColorCodes('&', prefixRaw);
 
+        // Check if list first
+        if (cfg.isList("messages." + key)) {
+            List<String> list = cfg.getStringList("messages." + key);
+            if (list.isEmpty())
+                return "";
+            // Return first line if single String expected, or join them
+            // But for compatibility with existing code that expects String,
+            // we'll just join with newlines or return first.
+            // Actually, existing code uses getMessage for single liners mostly.
+            // If we really need list support, use getMessageList.
+            // Here, let's just return the joined string or first line?
+            // Let's stick to legacy behavior: standard getString behavior.
+        }
+
         String raw = cfg.getString("messages." + key, "&cMensaje faltante: " + key);
         raw = raw.replace("%prefix%", prefix);
 
         return translateColors(raw);
+    }
+
+    public List<String> getMessageList(String key) {
+        FileConfiguration cfg = getConfig();
+
+        String prefixRaw = cfg.getString("messages.prefix", "&8[&bValerin&fUtils&8]&r ");
+        String prefix = ChatColor.translateAlternateColorCodes('&', prefixRaw);
+
+        if (cfg.isList("messages." + key)) {
+            List<String> rawList = cfg.getStringList("messages." + key);
+            List<String> processed = new ArrayList<>();
+            for (String line : rawList) {
+                line = line.replace("%prefix%", prefix);
+                processed.add(translateColors(line));
+            }
+            return processed;
+        } else {
+            // Fallback for single string
+            String raw = cfg.getString("messages." + key);
+            if (raw == null) {
+                return Collections.singletonList(translateColors("&cMensaje faltante: " + key));
+            }
+            raw = raw.replace("%prefix%", prefix);
+            return Collections.singletonList(translateColors(raw));
+        }
     }
 
     public String translateColors(String message) {
