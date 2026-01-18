@@ -5,14 +5,16 @@ modules:
     enabled: true
   vote40:
     enabled: true
-    service-name: 40Servidores
+    service-name: 40servidoresMC.es
     delay-seconds: 30
   externalplaceholders:
+    enabled: true
+  tiktok:
     enabled: true
   joinquit:
     enabled: true
   ecoskillsrecount:
-    enabled: true
+    enabled: false
     delay-ticks: 10
     notify-player: false
 
@@ -53,10 +55,32 @@ messages:
   menuitem-on: '%prefix%&aItem de menú &factivado&7. Ahora ocupará el slot configurado.'
   menuitem-off: '%prefix%&cItem de menú &fdesactivado&7. El slot queda libre.'
   menuitem-toggled-on: '%prefix%&aItem de menú &factivado&7.'
-  menuitem-toggled-off: '%prefix%&cItem de menú &fdesactivado&7.'
-  menuitem-slot-occupied: '%prefix%&cNo puedes activar el item. El slot está ocupado, vacíalo primero.'
+  menuitem-toggled-off: "%prefix%&cItem de menú &fdesactivado&7."
+  
+  reward-usage: "%prefix%&7Uso: &e/%command%"
+  reward-already-claimed: "%prefix%&c¡Ya has reclamado esta recompensa!"
+  reward-success: "%prefix%&a¡Has reclamado tu recompensa!"
+  
+  menuitem-slot-occupied: '%prefix%&cNo puedes activar el item. El slot está ocupado,
+    vacíalo primero.'
   
   ecoskillsrecount-done: '%prefix%&aTus habilidades han sido recalculadas correctamente.'
+
+tiktok:
+  command-name: "tiktok"
+  commands:
+    - "eco give %player% 1000"
+    - "xp give %player% 500"
+  sound:
+    enabled: true
+    name: "ENTITY_PLAYER_LEVELUP"
+    volume: 1.0
+    pitch: 1.0
+  effect:
+    enabled: true
+    # Tipos: TOTEM_OF_UNDYING, VILLAGER_HAPPY, FLAME, etc.
+    type: "TOTEM_OF_UNDYING"
+    count: 100
 
 joinquit:
   enabled: true
@@ -68,14 +92,14 @@ joinquit:
     broadcast-message:
     - '&8&m-----------------------------------------------------'
     - '&r'
-    - '  <gradient:#46C3D2:white><bold>¡BIENVENIDO!</bold></gradient>'
+    - '  <gradient:#46C3D2:white><bold>¡BIENVENIDO!</bold>'
     - '  &7¡Démosle la bienvenida a &f%player% &7al servidor!'
     - '  &7Eres el aventurero número &f#%player_number%'
     - '&r'
     - '&8&m-----------------------------------------------------'
     title:
       enabled: false
-      title: <gradient:#46C3D2:white><bold>¡BIENVENIDO!</bold></gradient>
+      title: <gradient:#46C3D2:white><bold>¡BIENVENIDO!</bold>
       subtitle: '&7¡Esperamos que te diviertas!'
       fade-in: 10
       stay: 60
@@ -93,8 +117,8 @@ joinquit:
       owner:
         priority: 100
         messages:
-        - '&6🌊 <glyph:owner> <gradient:#e03535:#651520>%essentials_nickname%</gradient>
-          &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
+        - '&6🌊 <glyph:owner> <gradient:#e03535:#651520>%essentials_nickname% &esᴇ
+          ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
         sound:
           enabled: true
           name: BLOCK_NOTE_BLOCK_BELL
@@ -103,8 +127,8 @@ joinquit:
       admin:
         priority: 95
         messages:
-        - '&6🌊 <glyph:admin> <gradient:#ff7a40:#b02000>%essentials_nickname%</gradient>
-          &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
+        - '&6🌊 <glyph:admin> <gradient:#ff7a40:#b02000>%essentials_nickname% &esᴇ
+          ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
         sound:
           enabled: true
           name: BLOCK_NOTE_BLOCK_BELL
@@ -113,8 +137,8 @@ joinquit:
       mod:
         priority: 90
         messages:
-        - '&6🌊 <glyph:mod> <gradient:#ffaf20:#a03005>%essentials_nickname%</gradient>
-          &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
+        - '&6🌊 <glyph:mod> <gradient:#ffaf20:#a03005>%essentials_nickname% &esᴇ ʜᴀ
+          ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
         sound:
           enabled: true
           name: BLOCK_NOTE_BLOCK_BELL
@@ -123,8 +147,8 @@ joinquit:
       helper:
         priority: 85
         messages:
-        - '&6🌊 <glyph:helper> <gradient:#50ffc5:#009985>%essentials_nickname%</gradient>
-          &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
+        - '&6🌊 <glyph:helper> <gradient:#50ffc5:#009985>%essentials_nickname% &esᴇ
+          ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
         sound:
           enabled: true
           name: BLOCK_AMETHYST_BLOCK_CHIME
@@ -135,8 +159,8 @@ joinquit:
       leyenda:
         priority: 60
         messages:
-        - '&6🌊 <glyph:legendary> <gradient:#ffba60:#cf4b15>%essentials_nickname%</gradient>
-          &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
+        - '&6🌊 <glyph:leyenda> <gradient:#ffba60:#cf4b15>%essentials_nickname% &esᴇ
+          ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
         sound:
           enabled: true
           name: BLOCK_NOTE_BLOCK_BELL
@@ -145,8 +169,7 @@ joinquit:
       elite:
         priority: 50
         messages:
-        - '&6🌊 <glyph:elite> <#f6558e>%essentials_nickname%</gradient>
-          &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
+        - '&6🌊 <glyph:elite> <#f6558e>%essentials_nickname% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
         sound:
           enabled: true
           name: BLOCK_NOTE_BLOCK_BELL
@@ -155,8 +178,7 @@ joinquit:
       arcano:
         priority: 40
         messages:
-        - '&6🌊 <glyph:arcane> <#d97db3>%essentials_nickname%</gradient>
-          &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
+        - '&6🌊 <glyph:arcano> <#d97db3>%essentials_nickname% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
         sound:
           enabled: true
           name: BLOCK_NOTE_BLOCK_BELL
@@ -165,8 +187,8 @@ joinquit:
       ascendido:
         priority: 30
         messages:
-        - '&6🌊 <glyph:ascended> <#9ce942>%essentials_nickname%</gradient>
-          &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
+        - '&6🌊 <glyph:ascendido> <#9ce942>%essentials_nickname% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊
+          &8(%online%)'
         sound:
           enabled: true
           name: BLOCK_NOTE_BLOCK_BELL
@@ -175,8 +197,8 @@ joinquit:
       guardian:
         priority: 20
         messages:
-        - '&6🌊 <glyph:guardian> <#50b5e8>%essentials_nickname%</gradient>
-          &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%online%)'
+        - '&6🌊 <glyph:guardian> <#50b5e8>%essentials_nickname% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊
+          &8(%online%)'
         sound:
           enabled: true
           name: BLOCK_NOTE_BLOCK_BELL

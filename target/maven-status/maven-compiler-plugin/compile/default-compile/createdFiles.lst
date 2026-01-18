@@ -17,3 +17,4 @@ me\Mtynnn\valerinUtils\modules\externalplaceholders\providers\PlaceholderProvide
 me\Mtynnn\valerinUtils\modules\externalplaceholders\ExternalPlaceholdersModule.class
 me\Mtynnn\valerinUtils\modules\vote40\Vote40Module.class
 me\Mtynnn\valerinUtils\modules\joinquit\JoinQuitModule.class
+me\Mtynnn\valerinUtils\modules\tiktok\TikTokModule.class

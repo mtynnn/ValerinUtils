@@ -7,6 +7,7 @@ import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
 import me.Mtynnn.valerinUtils.modules.vote40.Vote40Module;
 import me.Mtynnn.valerinUtils.modules.joinquit.JoinQuitModule;
 import me.Mtynnn.valerinUtils.modules.ecoskillsrecount.EcoSkillsRecountModule;
+import me.Mtynnn.valerinUtils.modules.tiktok.TikTokModule;
 import me.Mtynnn.valerinUtils.commands.ValerinUtilsCommand;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +28,7 @@ public final class ValerinUtils extends JavaPlugin {
     private ExternalPlaceholdersModule externalPlaceholdersModule;
     private JoinQuitModule joinQuitModule;
     private EcoSkillsRecountModule ecoSkillsRecountModule;
+    private TikTokModule tikTokModule;
 
     @Override
     public void onEnable() {
@@ -46,6 +48,10 @@ public final class ValerinUtils extends JavaPlugin {
         // Módulo JoinQuit
         joinQuitModule = new JoinQuitModule(this);
         moduleManager.registerModule(joinQuitModule);
+
+        // Módulo TikTok
+        tikTokModule = new TikTokModule(this);
+        moduleManager.registerModule(tikTokModule);
 
         // Módulo EcoSkills Recount
         if (Bukkit.getPluginManager().getPlugin("EcoSkills") != null) {
@@ -115,6 +121,10 @@ public final class ValerinUtils extends JavaPlugin {
 
     public EcoSkillsRecountModule getEcoSkillsRecountModule() {
         return ecoSkillsRecountModule;
+    }
+
+    public TikTokModule getTikTokModule() {
+        return tikTokModule;
     }
 
     public String getMessage(String key) {

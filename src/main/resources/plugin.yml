@@ -16,5 +16,4 @@ commands:
 
   menuitem:
     description: Activa o desactiva tu item de menú
-    usage: "/menuitem <on|off|toggle>"
     aliases: [menu]

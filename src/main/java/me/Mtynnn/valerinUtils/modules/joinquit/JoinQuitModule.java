@@ -10,6 +10,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -84,14 +85,24 @@ public class JoinQuitModule implements Module, Listener {
         return disabled.contains(worldName);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+
+        if (plugin.isDebug()) {
+            plugin.getLogger().info("[Debug] Join Event - Metadata keys for " + player.getName() + ": "
+                    + player.getMetadata("vanished").toString());
+        }
+
         if (isWorldDisabled(player.getWorld().getName()))
             return;
 
-        // Check for vanish
-        if (player.hasMetadata("vanished")) {
+        // Check for vanish (Robust check)
+        boolean isVanished = player.hasMetadata("vanished") || player.hasMetadata("CMI_Vanish");
+
+        if (isVanished) {
+            if (plugin.isDebug())
+                plugin.getLogger().info("Player is vanished (metadata valid), silencing join.");
             event.setJoinMessage(null);
             return;
         }
@@ -115,14 +126,16 @@ public class JoinQuitModule implements Module, Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         if (isWorldDisabled(player.getWorld().getName()))
             return;
 
         // Check for vanish
-        if (player.hasMetadata("vanished")) {
+        boolean isVanished = player.hasMetadata("vanished") || player.hasMetadata("CMI_Vanish");
+
+        if (isVanished) {
             event.setQuitMessage(null);
             return;
         }
@@ -360,27 +373,27 @@ public class JoinQuitModule implements Module, Listener {
             Class<?> providerClass = Class.forName("net.luckperms.api.LuckPermsProvider");
             java.lang.reflect.Method getMethod = providerClass.getMethod("get");
             Object api = getMethod.invoke(null);
-            
+
             Class<?> apiClass = api.getClass();
             java.lang.reflect.Method getUserManagerMethod = apiClass.getMethod("getUserManager");
             Object userManager = getUserManagerMethod.invoke(api);
-            
+
             Class<?> userManagerClass = userManager.getClass();
             java.lang.reflect.Method getUserMethod = userManagerClass.getMethod("getUser", java.util.UUID.class);
             Object user = getUserMethod.invoke(userManager, player.getUniqueId());
-            
+
             if (user == null)
                 return false;
 
             java.lang.reflect.Method getInheritedGroupsMethod = user.getClass()
                     .getMethod("getInheritedGroups", Class.forName("net.luckperms.api.query.QueryOptions"));
-            
+
             Class<?> queryOptionsClass = Class.forName("net.luckperms.api.query.QueryOptions");
             java.lang.reflect.Method defaultContextualMethod = queryOptionsClass.getMethod("defaultContextualOptions");
             Object queryOptions = defaultContextualMethod.invoke(null);
-            
+
             Object groups = getInheritedGroupsMethod.invoke(user, queryOptions);
-            
+
             if (groups instanceof java.util.Collection<?>) {
                 for (Object group : (java.util.Collection<?>) groups) {
                     java.lang.reflect.Method getNameMethod = group.getClass().getMethod("getName");
@@ -396,7 +409,7 @@ public class JoinQuitModule implements Module, Listener {
             }
             return false;
         }
-        
+
         return false;
     }
 }
